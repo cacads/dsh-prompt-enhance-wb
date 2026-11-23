@@ -80,3 +80,38 @@ Blocks are tagged `[WB]` (WorkBuddy original), `[DIP]` (dsh-improve-prompt) and
 The other two DSH plugins were read from their published tarballs
 (`dsh-improve-prompt@0.7.3`, `@surfishs/dsh-prompt-enhance@0.1.8`) so the
 comparison rests on their actual prompt text, not their listing copy.
+
+## 1.1.0: what came from `dsh-voice-prompt-enhancer`
+
+Version 1.1.0 replaced a competing plugin on this machine
+(`dsh-voice-prompt-enhancer@3.5.1`, Apache-2.0, `Fishsb/dsh-voice-prompt-enhancer`),
+so its installed copy was read first and its hard-won behaviours were adopted
+where they were cheaper to reuse than to rediscover. Blocks taken from it are
+tagged `[VPE]` in `src/prompts.js`.
+
+**Adopted (behaviour, re-implemented here):**
+
+| Behaviour | Where it came from |
+|---|---|
+| Cancel = button click while running; snapshot restored immediately | its `cancelEnhance` (client half) |
+| Late-result guard: a reply that lands after the user edited the draft is dropped | its `draftRef.current !== session.backup` check |
+| Per-session state keyed by `sessionId` | its `sessionStores` map |
+| Progress polling (500 ms) with stage/model/elapsed | its `enhance/progress` RPC |
+| Provider retry policy read from `llm.providerRetryPolicy`, same backoff formula | its `computeBackoffDelayMs` / `isRetryableFailure` |
+| Model chain: try in order, fall through on failure | its `buildTryChain` |
+| `max-tokens` finish means "truncated", not "failed" | its `collectStream` kinds |
+| Memory chain: up to 4 accepted rounds as real conversation turns | its `buildChatMessages` |
+| Slash command: rewrite the body, keep the prefix | its `splitCommand` |
+| Semantics block (pragmatic type, verbatim numbers/ranges, stability) | distilled from its discipline prompt |
+| Visible error bar instead of a tooltip | its `EnhanceBar` |
+
+**Deliberately not adopted:** its retrieval pipeline (session rounds, workspace
+document scan, web search for the `publish` mode), its five modes and the
+templates behind them, its 19 s watchdog and connectivity probe (tuned to one
+machine's TTFT), its layered retry (2 passes × backoff), and its dual
+localStorage + JSON config sync. Those are either product lines this plugin does
+not have, or workarounds for problems the harness has since solved.
+
+The plugin's own prompt text was not copied: the backbone here is still
+WorkBuddy's `[WB]` prompt, extended rather than replaced.
+

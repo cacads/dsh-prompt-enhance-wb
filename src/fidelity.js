@@ -13,6 +13,13 @@
  */
 
 /**
+ * Characters that end a path. CJK punctuation is in here on purpose: a path
+ * followed by "：" in Chinese prose is still the same path, and letting the
+ * colon join the token made a faithful rewrite look like a loss.
+ */
+const PATH_STOP = '\\s"\'`<>|*?：:，,。；;！!？?、（）()【】\\[\\]{}'
+
+/**
  * One class of hard fact and the extractor that finds it in a text.
  * Order matters only for reporting; the patterns are independent.
  */
@@ -25,7 +32,10 @@ const EXTRACTORS = [
   {
     kind: 'path',
     // POSIX absolute, Windows drive, UNC, and home-relative paths.
-    pattern: /(?:[A-Za-z]:\\[^\s"'`<>|*?]+|\/\/[^\s"'`<>|*?]+|\/(?:[\w.-]+\/)*[\w.-]+|~\/[^\s"'`<>]+)/gu,
+    pattern: new RegExp(
+      `(?:[A-Za-z]:\\\\[^${PATH_STOP}]+|//[^${PATH_STOP}]+|/(?:[\\w.-]+/)*[\\w.-]+|~/[^${PATH_STOP}]+)`,
+      'gu',
+    ),
   },
   {
     kind: 'reference',
@@ -66,7 +76,10 @@ function isSignificant(kind, token) {
   const trimmed = token.trim()
   if (trimmed === '') return false
   if (kind === 'number') return trimmed.length > 1 || /\d/u.test(trimmed)
-  if (kind === 'identifier') return /[_.\-\d]/u.test(trimmed) && trimmed.length > 2
+  // Identifiers only reach here through a structural pattern (snake_case,
+  // camelCase, SCREAMING_CASE, dotted or hyphenated), so length is the only
+  // extra guard needed; requiring a separator dropped every camelCase name.
+  if (kind === 'identifier') return trimmed.length > 2
   return true
 }
 
@@ -127,6 +140,9 @@ export function checkFidelity(draft, rewritten) {
     const present = after.get(kind) ?? new Set()
     const missing = []
     for (const token of tokens) {
+      // A code span that lost its backticks is still the same instruction; only
+      // a genuinely dropped command counts as a loss.
+      if (kind === 'code' && rewritten.includes(token)) continue
       if (present.has(token)) continue
       // A lost URL shows up again as its `//host/path` tail and its dotted host.
       // Skip a token that overlaps one already reported, in either direction, so

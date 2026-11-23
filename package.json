@@ -1,9 +1,9 @@
 {
   "name": "dsh-prompt-enhance-wb",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
-  "description": "Composer prompt enhancement for the DSH web GUI, built on the prompt WorkBuddy ships for its own enhance button, with a fidelity gate and a two-sided length gate.",
+  "description": "Composer prompt enhancement for the DSH web GUI, built on the prompt WorkBuddy ships for its own enhance button, with a fidelity gate, a two-sided length gate, a model chain with retry, cancel/progress, and per-session state.",
   "exports": {
     ".": "./index.js",
     "./client": "./client.js",
@@ -18,8 +18,12 @@
     "cordis.patch.yml",
     "locale/*.json",
     "docs",
+    "CHANGELOG.md",
     "icon.svg"
   ],
+  "scripts": {
+    "test": "node --test test"
+  },
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
@@ -27,7 +31,13 @@
     "client": {
       "platform": "web",
       "immediately": true,
-      "inject": ["@deepseek-ai/dsh-client-ui-conversation"]
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
     }
+  },
+  "engines": {
+    "dsh": ">=0.2.1-rc.1"
   }
 }
+
