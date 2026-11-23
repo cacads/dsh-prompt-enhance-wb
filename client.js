@@ -264,7 +264,12 @@ window.__ModuleLoader__.load({
      */
     function makeT(locale) {
       let bound = null
-      let language = 'en'
+      // The locale service is authoritative; when it is not up yet (the plugin
+      // can materialize before it), the browser's own preference keeps the
+      // labels in the right language instead of defaulting to English.
+      let language = typeof navigator !== 'undefined' && typeof navigator.language === 'string' && navigator.language.toLowerCase().startsWith('zh')
+        ? 'zh'
+        : 'en'
       try {
         if (locale !== undefined && locale !== null) {
           if (typeof locale.bind === 'function') bound = locale.bind(NS)
@@ -933,4 +938,5 @@ window.__ModuleLoader__.load({
     }
   },
 })
+
 
