@@ -79,11 +79,29 @@ window.__ModuleLoader__.load({
       const [warnings, setWarnings] = useState([])
       const abortRef = useRef(null)
 
-      // A draft edited after an enhancement is the user's own text again; keep
-      // the backup so revert stays available, but drop the stale warnings.
+      // The rewrite only counts as "in place" while the composer still holds
+      // exactly what the enhancement wrote, and the snapshot has not been
+      // invalidated since. Comparing text alone is not enough: after a send the
+      // composer is empty, and a user who retypes text identical to the rewrite
+      // would otherwise resurrect a revert that points at an already-sent draft.
+      // `invalidated` closes that gap — any send or divergence latches it, so a
+      // coincidence of content can never re-arm the action.
+      const [invalidated, setInvalidated] = useState(false)
+      const active = !invalidated && backup !== null && draft === backup.after ? backup : null
+      const activeWarnings = active === null ? [] : warnings
+
+      // Latch the snapshot invalid as soon as the draft diverges from it, and
+      // again when a send moves the composer out of `plain`. Latching (not just
+      // deriving) is what survives the draft coming back to the same text.
       useEffect(() => {
-        if (backup !== null && draft !== backup.after) setWarnings([])
-      }, [draft, backup])
+        if (backup === null || invalidated) return
+        if (draft !== backup.after) setInvalidated(true)
+      }, [draft, backup, invalidated])
+      useEffect(() => {
+        if (backup !== null && phase !== undefined && phase !== 'plain') {
+          setInvalidated(true)
+        }
+      }, [phase, backup])
 
       // Abort an in-flight call when the control unmounts.
       useEffect(() => () => { abortRef.current?.abort() }, [])
@@ -122,6 +140,7 @@ window.__ModuleLoader__.load({
           }
           setDraft(value)
           setBackup({ before: text, after: value })
+          setInvalidated(false)
           setWarnings(Array.isArray(payload.warnings) ? payload.warnings : [])
         } catch (cause) {
           if (cause instanceof Error && cause.name === 'AbortError') return
@@ -136,6 +155,7 @@ window.__ModuleLoader__.load({
         if (backup === null) return
         setDraft(backup.before)
         setBackup(null)
+        setInvalidated(false)
         setWarnings([])
         setError('')
       }
@@ -147,8 +167,8 @@ window.__ModuleLoader__.load({
         && typeof actions?.setDraft === 'function'
       if (!supported) return null
 
-      const disabled = running || busy || (backup === null && draft.trim() === '')
-      const label = backup !== null ? '恢复原文' : running ? '增强中…' : '增强提示词'
+      const disabled = running || busy || (active === null && draft.trim() === '')
+      const label = active !== null ? '恢复原文' : running ? '增强中…' : '增强提示词'
       const title = error !== '' ? `${label} — ${error}` : label
 
       return h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 6 } }, [
@@ -158,7 +178,7 @@ window.__ModuleLoader__.load({
           title,
           'aria-label': label,
           disabled,
-          onClick: backup !== null ? revert : enhance,
+          onClick: active !== null ? revert : enhance,
           style: {
             display: 'inline-flex',
             alignItems: 'center',
@@ -175,11 +195,11 @@ window.__ModuleLoader__.load({
             opacity: disabled ? 0.5 : 1,
             whiteSpace: 'nowrap',
           },
-        }, [h('span', { key: 'icon', 'aria-hidden': true }, backup !== null ? '↺' : '✦'), label]),
-        warnings.length > 0
+        }, [h('span', { key: 'icon', 'aria-hidden': true }, active !== null ? '↺' : '✦'), label]),
+        activeWarnings.length > 0
           ? h('span', {
               key: 'warn',
-              title: warnings.map(warning => warning.detail).join('\n'),
+              title: activeWarnings.map(warning => warning.detail).join('\n'),
               style: { fontSize: 11, color: 'var(--dsw-alias-text-warning, #b8860b)', cursor: 'help' },
             }, '⚠')
           : null,
