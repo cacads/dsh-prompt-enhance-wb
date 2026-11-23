@@ -608,8 +608,10 @@ window.__ModuleLoader__.load({
     function EnhanceControl(props) {
       const sessionId = sessionIdOf(props)
       const store = useSessionStore(sessionId)
-      const draft = useInputSlice(props, state => state?.draft)
-      const phase = useInputSlice(props, state => state?.phase)
+      // `draft` sits at the top level of the input snapshot in every build
+      // checked; the nested read keeps a host that re-roots it working.
+      const draft = useInputSlice(props, state => state?.draft ?? state?.input?.draft)
+      const phase = useInputSlice(props, state => state?.phase ?? state?.input?.phase)
       const draftRef = React.useRef(typeof draft === 'string' ? draft : '')
       draftRef.current = typeof draft === 'string' ? draft : ''
       const text = draftRef.current
@@ -931,3 +933,4 @@ window.__ModuleLoader__.load({
     }
   },
 })
+
