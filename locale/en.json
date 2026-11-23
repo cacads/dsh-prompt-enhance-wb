@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "WorkBuddy-style prompt enhancement",
+    "description": "Adds an enhance button to the composer that rewrites your draft into a more effective prompt using the prompt WorkBuddy ships for its own enhance button, plus a fidelity gate that keeps paths, numbers, URLs and code verbatim. Click again to restore the original."
+  }
+}

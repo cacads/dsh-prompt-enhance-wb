@@ -1,0 +1,14 @@
+# Bundle patch for dsh-prompt-enhance-wb.
+#
+# Inserts one plugin row. The package is both halves: "." runs in the Host and
+# registers the POST /dsh-prompt-enhance-wb/enhance route, and dsh.client serves
+# client.js to the browser for the composer button.
+- insert:
+    - id: dsh-prompt-enhance-wb
+      name: dsh-prompt-enhance-wb
+      config:
+        maxInputChars: 8000
+        maxOutputChars: 4000
+        timeoutMs: 60000
+        minRatio: 0.6
+        rejectOnFidelityLoss: false
